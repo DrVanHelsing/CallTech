@@ -10,94 +10,131 @@ interface VoiceRecorderProps {
   onProcessingStart: () => void;
 }
 
-// Mock speech recognition for demo
-const mockTranscripts = [
-  "Why is my bill so high this month?",
-  "I can't access my account online",
-  "When is my next payment due?",
-  "I want to cancel my service",
-  "How do I change my billing address?",
-  "My internet connection is very slow",
-  "Can you help me with my password reset?"
-];
-
-const mockRoutes = [
-  { type: "billing", confidence: 0.92 },
-  { type: "technical", confidence: 0.89 },
-  { type: "account", confidence: 0.95 },
-  { type: "cancellation", confidence: 0.87 },
-  { type: "billing", confidence: 0.91 },
-  { type: "technical", confidence: 0.85 },
-  { type: "account", confidence: 0.93 }
-];
-
-const mockResponses = [
-  "I can see your bill increased due to additional data usage this month. You used 15GB over your plan limit at $10/GB. Would you like me to explain the charges or help you upgrade to an unlimited plan?",
-  "I can help you reset your account access. I see you last logged in 3 days ago. Let me send a secure reset link to your registered email address ending in ...@gmail.com.",
-  "Your next payment of $89.99 is due on March 15th, 2024. You're currently set up for auto-pay on your Visa ending in 1234. Would you like to change the payment method?",
-  "I understand you'd like to cancel your service. Before we proceed, I can see you're a valued customer for 3 years. Let me check if there are any retention offers available for you.",
-  "I can update your billing address right away. For security, I'll need to verify a few details first. Can you confirm the last 4 digits of your social security number?",
-  "I can see there are network issues in your area affecting speeds. Our technicians are working on it and expect resolution by 6 PM today. I can also schedule a technician visit if needed.",
-  "I'll help you reset your password. For security, I'm sending a verification code to your phone ending in 5678. Please enter the code when you receive it."
-];
-
 export const VoiceRecorder = ({ onQueryComplete, onProcessingStart }: VoiceRecorderProps) => {
+// ...existing code above...
+
+
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
 
-  const startRecording = () => {
+  const startRecording = async () => {
     setIsRecording(true);
     setTranscript("");
-    onProcessingStart();
-    
-    // Simulate recording and transcription
-    const randomIndex = Math.floor(Math.random() * mockTranscripts.length);
-    const mockTranscript = mockTranscripts[randomIndex];
-    const route = mockRoutes[randomIndex];
-    const response = mockResponses[randomIndex];
-    
-    // Simulate real-time transcription
-    let currentText = "";
-    const words = mockTranscript.split(" ");
-    
-    words.forEach((word, index) => {
-      setTimeout(() => {
-        currentText += (index > 0 ? " " : "") + word;
-        setTranscript(currentText);
-      }, index * 200);
-    });
-    
-    // Auto-stop after transcript is complete and process
-    timeoutRef.current = setTimeout(() => {
-      setIsRecording(false);
-      setIsProcessing(true);
-      
-      setTimeout(() => {
-        const query: Query = {
-          id: Date.now().toString(),
-          timestamp: new Date(),
-          transcript: mockTranscript,
-          route: route.type,
-          response: response,
-          confidence: route.confidence
-        };
-        
-        onQueryComplete(query);
+    setAudioChunks([]);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const supportedType = MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
+        ? 'audio/ogg;codecs=opus'
+        : '';
+      const recorder = supportedType ? new MediaRecorder(stream, { mimeType: supportedType }) : new MediaRecorder(stream);
+      setMediaRecorder(recorder);
+      const chunks: Blob[] = [];
+
+      recorder.ondataavailable = (e: BlobEvent) => {
+        if (e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        setIsProcessing(true);
+        onProcessingStart();
+        const type = recorder.mimeType || 'audio/webm';
+        const ext = type.includes('ogg') ? 'ogg' : 'webm';
+        const audioBlob = new Blob(chunks, { type });
+        setAudioChunks([]);
+
+        // Send audio to Python backend for transcription
+        const formData = new FormData();
+        formData.append('audio', audioBlob, `recording.${ext}`);
+
+        try {
+          // 1. Speech-to-text (Python backend)
+          const transcriptRes = await fetch('http://localhost:8000/stt', {
+            method: 'POST',
+            body: formData
+          });
+          if (!transcriptRes.ok) {
+            const errText = await transcriptRes.text();
+            throw new Error(`speech-to-text failed: ${errText}`);
+          }
+          const transcriptData = await transcriptRes.json();
+          setTranscript(transcriptData.transcript);
+
+          // 2. Fetch customer data (Node backend)
+          const customerRes = await fetch('http://localhost:3001/api/customers/CUST-2024-001');
+          if (!customerRes.ok) {
+            const errText = await customerRes.text();
+            throw new Error(`customer fetch failed: ${errText}`);
+          }
+          const customer = await customerRes.json();
+
+          // 3. Send transcript and customer to AI endpoint (Node backend)
+          const aiRes = await fetch('http://localhost:3001/api/ai/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ transcript: transcriptData.transcript, customer })
+          });
+          if (!aiRes.ok) {
+            const errText = await aiRes.text();
+            throw new Error(`ai/chat failed: ${errText}`);
+          }
+          const aiData = await aiRes.json();
+
+          // 4. Text-to-speech (Python backend)
+          const ttsForm = new FormData();
+          ttsForm.append('text', aiData.response);
+          const ttsRes = await fetch('http://localhost:8000/tts', {
+            method: 'POST',
+            body: ttsForm
+          });
+          if (ttsRes.ok) {
+            const audioUrl = URL.createObjectURL(await ttsRes.blob());
+            const audio = new Audio(audioUrl);
+            audio.play();
+          }
+
+          const query: Query = {
+            id: Date.now().toString(),
+            timestamp: new Date(),
+            transcript: transcriptData.transcript,
+            route: 'ai',
+            response: aiData.response,
+            confidence: 1
+          };
+          onQueryComplete(query);
+        } catch (err: any) {
+          console.error(err);
+          setTranscript('Error processing audio or AI response.');
+        }
         setIsProcessing(false);
-        setTranscript("");
-      }, 2000);
-    }, words.length * 200 + 1000);
+      };
+
+      recorder.start();
+    } catch (err) {
+      setTranscript('Microphone access denied or not available.');
+      setIsRecording(false);
+      setIsProcessing(false);
+    }
   };
 
   const stopRecording = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
     }
     setIsRecording(false);
-    setIsProcessing(false);
-    setTranscript("");
   };
 
   return (
@@ -154,7 +191,7 @@ export const VoiceRecorder = ({ onQueryComplete, onProcessingStart }: VoiceRecor
               )}
             </div>
             <p className="text-foreground min-h-[2rem] leading-relaxed">
-              {transcript || "Listening..."}
+              {transcript || (isRecording ? "Listening..." : "")}
               {isRecording && (
                 <span className="inline-block w-1 h-4 bg-primary ml-1 animate-pulse"></span>
               )}

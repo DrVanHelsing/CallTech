@@ -1,0 +1,44 @@
+[
+  {
+    "id": "CUST-2024-001",
+    "name": "Sarah Johnson",
+    "email": "sarah.j***@gmail.com",
+    "phone": "***-***-5678",
+    "plan": "Premium Internet + TV",
+    "status": "Active",
+    "balance": "$89.99",
+    "lastPayment": "Feb 15, 2024",
+    "joinDate": "Jan 2021",
+    "support": {
+      "tickets": 3,
+      "lastContact": "Feb 10, 2024",
+      "satisfaction": 4.5
+    },
+    "billing": {
+      "currentBill": "$89.99",
+      "usage": "245GB / 500GB",
+      "nextDue": "Mar 15, 2024"
+    }
+  },
+  {
+    "id": "CUST-2024-002",
+    "name": "John Doe",
+    "email": "john.d***@example.com",
+    "phone": "***-***-1234",
+    "plan": "Basic Internet",
+    "status": "Active",
+    "balance": "$49.99",
+    "lastPayment": "Aug 1, 2025",
+    "joinDate": "Mar 2022",
+    "support": {
+      "tickets": 1,
+      "lastContact": "Jul 20, 2025",
+      "satisfaction": 4.0
+    },
+    "billing": {
+      "currentBill": "$49.99",
+      "usage": "150GB / 250GB",
+      "nextDue": "Sep 1, 2025"
+    }
+  }
+]
