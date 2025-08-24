@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-dotenv.config({ path: '../.env' });
+dotenv.config({ path: '.env' });
 import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
@@ -200,7 +200,7 @@ app.post('/api/ai/chat', async (req, res) => {
 });
 
 // Start server
-app.listen(port, () => {
-    console.log(`Server listening at http://localhost:${port}`);
+app.listen(port, '0.0.0.0', () => {
+    console.log(`Server listening at http://0.0.0.0:${port}`);
 });
 

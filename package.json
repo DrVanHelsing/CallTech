@@ -9,7 +9,9 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start:server": "node server/index.js"
+    "start:server": "node server/index.js",
+    "start:python": "powershell -NoProfile -Command \"Set-Location 'python-backend'; & '../.venv/Scripts/python.exe' -m uvicorn main:app --host 0.0.0.0 --port 8001\"",
+    "start:all": "concurrently \"npm run start:server\" \"npm run start:python\" \"npm run dev\" --names \"API,Python,Frontend\" --prefix-colors \"blue,green,yellow\""
   },
   "dependencies": {
     "@azure/identity": "^4.11.1",
@@ -79,6 +81,7 @@
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react-swc": "^3.11.0",
     "autoprefixer": "^10.4.21",
+    "concurrently": "^9.2.0",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",

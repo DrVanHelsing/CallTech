@@ -11,9 +11,6 @@ interface VoiceRecorderProps {
 }
 
 export const VoiceRecorder = ({ onQueryComplete, onProcessingStart }: VoiceRecorderProps) => {
-// ...existing code above...
-
-
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -56,10 +53,15 @@ export const VoiceRecorder = ({ onQueryComplete, onProcessingStart }: VoiceRecor
         const formData = new FormData();
         formData.append('audio', audioBlob, `recording.${ext}`);
 
-        const PYTHON_API = 'https://super-duper-enigma-9w57j6xx6xwhxrj5-8000.app.github.dev';
-        const NODE_API = 'https://super-duper-enigma-9w57j6xx6xwhxrj5-3001.app.github.dev';
+        // Use environment variables or fallback to localhost
+        const PYTHON_API = import.meta.env.VITE_PYTHON_API_URL || 'http://localhost:8001';
+        const NODE_API = import.meta.env.VITE_NODE_API_URL || 'http://localhost:3001';
+        
+        console.log('API URLs:', { PYTHON_API, NODE_API });
+        
         try {
           // 1. Speech-to-text (Python backend)
+          console.log('Sending audio to:', `${PYTHON_API}/stt`);
           const transcriptRes = await fetch(`${PYTHON_API}/stt`, {
             method: 'POST',
             body: formData

@@ -4,3 +4,6 @@ openai-whisper
 python-multipart
 librosa
 soundfile
+pydub
+imageio-ffmpeg
+python-dotenv
