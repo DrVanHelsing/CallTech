@@ -12,9 +12,20 @@ interface VoiceRecorderProps {
   onProcessingStart: () => void;
   selectedCustomerId?: string;
   onCustomerSelected?: (customerId: string) => void;
+  onAIProcessingStart?: () => void;
+  onTTSStart?: () => void;
+  onComplete?: () => void;
 }
 
-export const VoiceRecorder = ({ onQueryComplete, onProcessingStart, selectedCustomerId, onCustomerSelected }: VoiceRecorderProps) => {
+export const VoiceRecorder = ({ 
+  onQueryComplete, 
+  onProcessingStart, 
+  selectedCustomerId, 
+  onCustomerSelected,
+  onAIProcessingStart,
+  onTTSStart,
+  onComplete
+}: VoiceRecorderProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -24,13 +35,41 @@ export const VoiceRecorder = ({ onQueryComplete, onProcessingStart, selectedCust
   const [conversationHistory, setConversationHistory] = useState<Array<{type: 'user' | 'ai', message: string, timestamp: Date}>>([]);
   const streamRef = useRef<MediaStream | null>(null);
 
+  // Clean text for TTS to avoid reading special characters literally
+  const cleanTextForTTS = (text: string): string => {
+    return text
+      // Replace common symbols with words
+      .replace(/\$/g, ' dollar ')
+      .replace(/%/g, ' percent ')
+      .replace(/@/g, ' at ')
+      .replace(/#/g, ' number ')
+      .replace(/&/g, ' and ')
+      .replace(/\*/g, ' star ')
+      .replace(/\+/g, ' plus ')
+      .replace(/=/g, ' equals ')
+      .replace(/</g, ' less than ')
+      .replace(/>/g, ' greater than ')
+      .replace(/\|/g, ' ')
+      .replace(/\\/g, ' ')
+      .replace(/\//g, ' slash ')
+      // Remove brackets and braces
+      .replace(/[\[\]{}]/g, ' ')
+      // Replace multiple spaces with single space
+      .replace(/\s+/g, ' ')
+      // Clean up any extra spaces
+      .trim();
+  };
+
   // Text-to-Speech function
   const speakResponse = (text: string, onComplete?: () => void) => {
     if ('speechSynthesis' in window) {
       // Cancel any ongoing speech
       window.speechSynthesis.cancel();
       
-      const utterance = new SpeechSynthesisUtterance(text);
+      // Clean the text for better TTS pronunciation
+      const cleanedText = cleanTextForTTS(text);
+      
+      const utterance = new SpeechSynthesisUtterance(cleanedText);
       
       // Configure voice settings for more natural speech
       utterance.rate = 0.85; // Slightly slower for more natural pace
@@ -245,6 +284,7 @@ export const VoiceRecorder = ({ onQueryComplete, onProcessingStart, selectedCust
           const customer = await customerRes.json();
 
           // 3. Send transcript and customer to AI endpoint (Node backend)
+          onAIProcessingStart?.();
           const aiRes = await fetch(`${NODE_API}/api/ai/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -257,9 +297,11 @@ export const VoiceRecorder = ({ onQueryComplete, onProcessingStart, selectedCust
           const aiData = await aiRes.json();
 
           // 4. Speak the AI response
+          onTTSStart?.();
           speakResponse(aiData.response, () => {
             // Processing is complete only after speech finishes
             setIsProcessing(false);
+            onComplete?.();
           });
 
           // Add to conversation history

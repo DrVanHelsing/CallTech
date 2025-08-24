@@ -6,11 +6,12 @@ import os
 import imageio_ffmpeg
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
 
-app = FastAPI()
+app = FastAPI(title="Voice AI Python Backend", version="1.0.0")
 
 # Ensure whisper can find ffmpeg
 try:
@@ -68,6 +69,24 @@ whisper_model_name = os.getenv('WHISPER_MODEL', 'base')
 print(f"Loading Whisper model: {whisper_model_name}...")
 whisper_model = whisper.load_model(whisper_model_name)
 print("Whisper model loaded successfully!")
+
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "service": "voice-ai-python-backend", 
+        "timestamp": datetime.now().isoformat(),
+        "version": "1.0.0",
+        "whisper_model": whisper_model_name
+    }
+
+@app.get("/")
+async def root():
+    return {
+        "message": "Voice AI Python Backend",
+        "endpoints": ["/health", "/stt", "/tts"],
+        "status": "running"
+    }
 
 @app.post("/stt")
 async def stt(audio: UploadFile = File(...)):

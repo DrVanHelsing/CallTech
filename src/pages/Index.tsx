@@ -24,6 +24,9 @@ const Index = () => {
   const [queries, setQueries] = useState<Query[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  
+  // Pipeline stage tracking
+  const [pipelineStage, setPipelineStage] = useState<'idle' | 'voice' | 'customer' | 'ai' | 'tts' | 'complete'>('idle');
 
   // Sample customer data for identification
   const customers = [
@@ -36,14 +39,33 @@ const Index = () => {
     setCurrentQuery(query);
     setQueries(prev => [query, ...prev]);
     setIsProcessing(false);
+    // Reset to idle after a delay (completion stage handled by onComplete callback)
+    setTimeout(() => setPipelineStage('idle'), 3000);
   };
 
   const handleProcessingStart = () => {
     setIsProcessing(true);
+    setPipelineStage('voice');
   };
 
   const handleCustomerSelected = (customerId: string) => {
     setSelectedCustomerId(customerId);
+    setPipelineStage('customer');
+  };
+
+  // New handler for AI processing stage
+  const handleAIProcessingStart = () => {
+    setPipelineStage('ai');
+  };
+
+  // New handler for TTS stage
+  const handleTTSStart = () => {
+    setPipelineStage('tts');
+  };
+
+  // New handler for completion
+  const handleComplete = () => {
+    setPipelineStage('complete');
   };
 
   return (
@@ -75,7 +97,9 @@ const Index = () => {
                 {/* Step 1: Voice Input */}
                 <div className="flex flex-col items-center space-y-3 min-w-[140px]">
                   <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${
-                    isProcessing ? 'bg-blue-500 animate-pulse' : 'bg-muted'
+                    pipelineStage === 'voice' ? 'bg-blue-500 animate-pulse' : 
+                    (pipelineStage === 'customer' || pipelineStage === 'ai' || pipelineStage === 'tts' || pipelineStage === 'complete') ? 'bg-blue-500' : 
+                    'bg-muted'
                   }`}>
                     <Mic className="h-8 w-8 text-white" />
                   </div>
@@ -84,8 +108,11 @@ const Index = () => {
                     <div className="text-xs text-muted-foreground">Speech Recognition</div>
                   </div>
                   <div className="h-6 flex items-center">
-                    {isProcessing && (
+                    {pipelineStage === 'voice' && (
                       <Badge variant="secondary" className="animate-pulse text-xs">Processing...</Badge>
+                    )}
+                    {(pipelineStage === 'customer' || pipelineStage === 'ai' || pipelineStage === 'tts' || pipelineStage === 'complete') && (
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">Complete</Badge>
                     )}
                   </div>
                 </div>
@@ -98,7 +125,10 @@ const Index = () => {
                 {/* Step 2: Customer ID */}
                 <div className="flex flex-col items-center space-y-3 min-w-[140px]">
                   <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${
-                    selectedCustomerId ? 'bg-green-500' : isProcessing ? 'bg-yellow-500 animate-pulse' : 'bg-muted'
+                    pipelineStage === 'customer' ? 'bg-yellow-500 animate-pulse' :
+                    (pipelineStage === 'ai' || pipelineStage === 'tts' || pipelineStage === 'complete') && selectedCustomerId ? 'bg-green-500' :
+                    pipelineStage === 'voice' ? 'bg-yellow-400' :
+                    'bg-muted'
                   }`}>
                     <Database className="h-8 w-8 text-white" />
                   </div>
@@ -107,7 +137,10 @@ const Index = () => {
                     <div className="text-xs text-muted-foreground">Database Lookup</div>
                   </div>
                   <div className="h-6 flex items-center">
-                    {selectedCustomerId && (
+                    {pipelineStage === 'customer' && (
+                      <Badge variant="secondary" className="animate-pulse text-xs">Identifying...</Badge>
+                    )}
+                    {selectedCustomerId && (pipelineStage === 'ai' || pipelineStage === 'tts' || pipelineStage === 'complete') && (
                       <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
                         {customers.find(c => c.id === selectedCustomerId)?.name}
                       </Badge>
@@ -123,7 +156,10 @@ const Index = () => {
                 {/* Step 3: AI Processing */}
                 <div className="flex flex-col items-center space-y-3 min-w-[140px]">
                   <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${
-                    currentQuery ? 'bg-purple-500' : isProcessing ? 'bg-purple-400 animate-pulse' : 'bg-muted'
+                    pipelineStage === 'ai' ? 'bg-purple-500 animate-pulse' :
+                    (pipelineStage === 'tts' || pipelineStage === 'complete') ? 'bg-purple-500' :
+                    (pipelineStage === 'customer' && selectedCustomerId) ? 'bg-purple-400' :
+                    'bg-muted'
                   }`}>
                     <Bot className="h-8 w-8 text-white" />
                   </div>
@@ -132,10 +168,11 @@ const Index = () => {
                     <div className="text-xs text-muted-foreground">OpenRouter/Mistral</div>
                   </div>
                   <div className="h-6 flex items-center">
-                    {currentQuery && (
-                      <Badge variant="secondary" className="bg-purple-100 text-purple-800 text-xs">
-                        Response Ready
-                      </Badge>
+                    {pipelineStage === 'ai' && (
+                      <Badge variant="secondary" className="animate-pulse text-xs">Thinking...</Badge>
+                    )}
+                    {(pipelineStage === 'tts' || pipelineStage === 'complete') && (
+                      <Badge variant="secondary" className="bg-purple-100 text-purple-800 text-xs">Response Ready</Badge>
                     )}
                   </div>
                 </div>
@@ -148,7 +185,10 @@ const Index = () => {
                 {/* Step 4: Voice Output */}
                 <div className="flex flex-col items-center space-y-3 min-w-[140px]">
                   <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${
-                    currentQuery ? 'bg-green-500' : 'bg-muted'
+                    pipelineStage === 'tts' ? 'bg-orange-500 animate-pulse' :
+                    pipelineStage === 'complete' ? 'bg-green-500' :
+                    pipelineStage === 'ai' ? 'bg-orange-400' :
+                    'bg-muted'
                   }`}>
                     <MessageSquare className="h-8 w-8 text-white" />
                   </div>
@@ -157,7 +197,10 @@ const Index = () => {
                     <div className="text-xs text-muted-foreground">Text-to-Speech</div>
                   </div>
                   <div className="h-6 flex items-center">
-                    {currentQuery && (
+                    {pipelineStage === 'tts' && (
+                      <Badge variant="secondary" className="animate-pulse text-xs">Speaking...</Badge>
+                    )}
+                    {pipelineStage === 'complete' && (
                       <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
                         <CheckCircle className="h-3 w-3 mr-1" />
                         Complete
@@ -250,6 +293,9 @@ const Index = () => {
               onProcessingStart={handleProcessingStart}
               selectedCustomerId={selectedCustomerId}
               onCustomerSelected={handleCustomerSelected}
+              onAIProcessingStart={handleAIProcessingStart}
+              onTTSStart={handleTTSStart}
+              onComplete={handleComplete}
             />
             
             {/* Demo Customer Helper */}

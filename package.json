@@ -7,8 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
+    "build:prod": "vite build --mode production",
     "lint": "eslint .",
     "preview": "vite preview",
+    "start": "node server/index.js",
     "start:server": "node server/index.js",
     "start:python": "powershell -NoProfile -Command \"Set-Location 'python-backend'; & '../.venv/Scripts/python.exe' -m uvicorn main:app --host 0.0.0.0 --port 8001\"",
     "start:all": "concurrently \"npm run start:server\" \"npm run start:python\" \"npm run dev\" --names \"API,Python,Frontend\" --prefix-colors \"blue,green,yellow\""

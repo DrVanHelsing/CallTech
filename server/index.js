@@ -40,6 +40,24 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// Health check endpoint for deployment monitoring
+app.get('/health', (req, res) => {
+    res.json({ 
+        status: 'healthy', 
+        service: 'voice-ai-node-api',
+        timestamp: new Date().toISOString(),
+        version: '1.0.0'
+    });
+});
+
+app.get('/', (req, res) => {
+    res.json({ 
+        message: 'Voice AI Node.js API Server',
+        endpoints: ['/health', '/api/customers', '/api/ai/chat'],
+        status: 'running'
+    });
+});
+
 // Multer for uploads (memory storage)
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -214,6 +232,17 @@ app.post('/api/ai/chat', async (req, res) => {
         'For technical issues, provide basic troubleshooting steps when appropriate.',
         'For billing disputes or complex issues, offer to escalate to a human representative.',
         'If a customer is not yet identified, politely ask them to provide their phone number or name for verification.',
+        '',
+        'IMPORTANT: Your responses will be read aloud by text-to-speech software.',
+        'Follow these TTS guidelines:',
+        '- Use only standard punctuation: periods, commas, question marks, exclamation points',
+        '- Avoid special characters like: @, #, $, %, &, *, +, =, [], {}, |, \\, /, <>, etc.',
+        '- Write out symbols: say "dollar" instead of "$", "percent" instead of "%"',
+        '- Use "dash" or "hyphen" instead of "-" when referring to symbols',
+        '- Spell out abbreviations that might be unclear: "ID" as "I D", "URL" as "U R L"',
+        '- Use natural speech patterns with proper sentence structure',
+        '- Avoid bullet points, numbered lists, or formatting characters',
+        '- Use words like "first", "second", "also", "additionally" instead of list formatting',
         '',
         'Common services you can help with:',
         '- Check account balance and payment history',
