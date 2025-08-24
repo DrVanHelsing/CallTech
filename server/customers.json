@@ -4,7 +4,7 @@
     "name": "Sarah Johnson",
     "email": "sarah.j***@gmail.com",
     "phone": "***-***-5678",
-    "plan": "Premium Internet + TV",
+    "plan": "Premium Internet + TV Bundle",
     "status": "Active",
     "balance": "$89.99",
     "lastPayment": "Feb 15, 2024",
@@ -12,12 +12,19 @@
     "support": {
       "tickets": 3,
       "lastContact": "Feb 10, 2024",
-      "satisfaction": 4.5
+      "satisfaction": 4.5,
+      "recentIssues": ["Internet connectivity intermittent", "TV channel lineup question"]
     },
     "billing": {
       "currentBill": "$89.99",
       "usage": "245GB / 500GB",
-      "nextDue": "Mar 15, 2024"
+      "nextDue": "Mar 15, 2024",
+      "paymentMethod": "Auto-pay (Credit Card)"
+    },
+    "services": {
+      "internet": "Fiber 500 Mbps",
+      "tv": "Premium Cable Package (200+ channels)",
+      "phone": "Unlimited Local & Long Distance"
     }
   },
   {
@@ -33,12 +40,47 @@
     "support": {
       "tickets": 1,
       "lastContact": "Jul 20, 2025",
-      "satisfaction": 4.0
+      "satisfaction": 4.0,
+      "recentIssues": ["Billing inquiry"]
     },
     "billing": {
       "currentBill": "$49.99",
       "usage": "150GB / 250GB",
-      "nextDue": "Sep 1, 2025"
+      "nextDue": "Sep 1, 2025",
+      "paymentMethod": "Monthly Invoice"
+    },
+    "services": {
+      "internet": "Cable 100 Mbps",
+      "tv": "None",
+      "phone": "None"
+    }
+  },
+  {
+    "id": "CUST-2024-003",
+    "name": "Maria Rodriguez",
+    "email": "maria.r***@yahoo.com",
+    "phone": "***-***-9876",
+    "plan": "Family Bundle Plus",
+    "status": "Active",
+    "balance": "$124.99",
+    "lastPayment": "Aug 20, 2025",
+    "joinDate": "Jun 2020",
+    "support": {
+      "tickets": 2,
+      "lastContact": "Aug 15, 2025",
+      "satisfaction": 4.8,
+      "recentIssues": ["Router replacement", "Speed upgrade"]
+    },
+    "billing": {
+      "currentBill": "$124.99",
+      "usage": "780GB / 1000GB",
+      "nextDue": "Sep 20, 2025",
+      "paymentMethod": "Auto-pay (Bank Account)"
+    },
+    "services": {
+      "internet": "Fiber Gigabit (1000 Mbps)",
+      "tv": "Premium Cable + Sports Package",
+      "phone": "Unlimited + International"
     }
   }
 ]

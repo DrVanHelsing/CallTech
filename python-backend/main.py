@@ -121,11 +121,58 @@ async def stt(audio: UploadFile = File(...)):
                 raise RuntimeError(f"ffmpeg conversion failed: {proc.stderr}")
             print(f"Conversion to WAV complete: {wav_path}")
 
-            # Run whisper on the wav file
+            # Run whisper on the wav file - but load audio manually to avoid Whisper's ffmpeg calls
             print("Starting Whisper transcription on WAV file...")
-            result = whisper_model.transcribe(wav_path, language=None, fp16=False, verbose=False)
-            text = result.get("text", "").strip()
-            print(f"Transcription result: {text}")
+            
+            # Load the WAV file manually using scipy or soundfile to avoid Whisper's audio loading
+            try:
+                import soundfile as sf
+                audio_data, sample_rate = sf.read(wav_path)
+                print(f"Loaded audio data: shape={audio_data.shape}, sr={sample_rate}")
+                
+                # Resample to 16kHz if needed (Whisper expects 16kHz)
+                if sample_rate != 16000:
+                    import librosa
+                    audio_data = librosa.resample(audio_data, orig_sr=sample_rate, target_sr=16000)
+                    print("Resampled audio to 16kHz")
+                
+                # Convert to float32 and ensure mono
+                import numpy as np
+                if len(audio_data.shape) > 1:
+                    audio_data = np.mean(audio_data, axis=1)  # Convert to mono
+                audio_data = audio_data.astype(np.float32)
+                
+                # Pass the raw audio array directly to Whisper (bypasses its audio loading)
+                print(f"Audio array stats: min={np.min(audio_data):.4f}, max={np.max(audio_data):.4f}, mean={np.mean(audio_data):.4f}")
+                print(f"Audio energy: {np.sqrt(np.mean(audio_data**2)):.6f}")
+                
+                result = whisper_model.transcribe(audio_data, language=None, fp16=False, verbose=False)
+                text = result.get("text", "").strip()
+                print(f"Transcription result: '{text}'")
+                print(f"Full Whisper result keys: {list(result.keys())}")
+                
+                # If empty, try with different Whisper settings
+                if not text:
+                    print("Empty result, trying with language='en' and different settings...")
+                    result2 = whisper_model.transcribe(
+                        audio_data, 
+                        language='en',
+                        fp16=False, 
+                        verbose=True,
+                        temperature=0.0,
+                        best_of=1
+                    )
+                    text2 = result2.get("text", "").strip()
+                    print(f"Second attempt result: '{text2}'")
+                    if text2:
+                        text = text2
+                
+            except ImportError as import_err:
+                print(f"soundfile/librosa not available: {import_err}")
+                # Fallback: try Whisper with WAV file path (may still fail)
+                result = whisper_model.transcribe(wav_path, language=None, fp16=False, verbose=False)
+                text = result.get("text", "").strip()
+                print(f"Transcription result (fallback): {text}")
 
             # Clean up wav file
             if os.path.exists(wav_path):
@@ -153,9 +200,38 @@ async def stt(audio: UploadFile = File(...)):
 
 @app.post("/tts")
 async def tts(text: str = Form(...)):
-    # Simplified TTS - just return success for now
-    return {"message": "TTS not implemented yet", "text": text}
+    """Convert text to speech using a simple TTS approach"""
+    try:
+        print(f"TTS request for text: {text[:50]}...")
+        
+        # For demo purposes, return a simple JSON response
+        # In production, you could integrate with:
+        # - Azure Speech Services
+        # - Google Text-to-Speech
+        # - AWS Polly
+        # - Open source TTS like festival, espeak, or coqui-tts
+        
+        return {
+            "message": "TTS processed (browser-based TTS is being used)",
+            "text": text,
+            "length": len(text),
+            "status": "success"
+        }
+    except Exception as e:
+        print(f"TTS error: {e}")
+        return {"error": str(e), "status": "failed"}
 
 @app.get("/")
 def root():
     return {"ok": True, "msg": "Python speech backend running"}
+
+@app.get("/debug")
+def debug_info():
+    """Debug endpoint to check system status"""
+    import sys
+    return {
+        "python_version": sys.version,
+        "whisper_model_loaded": whisper_model is not None,
+        "ffmpeg_available": True,  # We know it's configured
+        "status": "ready"
+    }

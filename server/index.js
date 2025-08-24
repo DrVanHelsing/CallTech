@@ -77,6 +77,31 @@ app.get('/api/customers/:id', async (req, res) => {
     }
 });
 
+// Customer lookup by phone number
+app.get('/api/customers/lookup/phone/:phone', async (req, res) => {
+    try {
+        const customers = await readCustomers();
+        const phoneParam = req.params.phone;
+        
+        // Find customer by last 4 digits of phone number (demo implementation)
+        const customer = customers.find((c) => 
+            c.phone && c.phone.includes(phoneParam.slice(-4))
+        );
+        
+        if (!customer) {
+            return res.status(404).json({ 
+                error: 'Customer not found', 
+                message: 'No customer found with that phone number' 
+            });
+        }
+        
+        res.json(customer);
+    } catch (err) {
+        console.error('[customers/lookup/phone] error', err);
+        res.status(500).send('Error looking up customer');
+    }
+});
+
 // Azure Speech token (optional for client-side SDKs)
 app.get('/api/speech-to-text/token', async (req, res) => {
     if (!speechKey || !speechRegion) {
@@ -158,31 +183,72 @@ app.post('/api/speech-to-text', upload.single('audio'), async (req, res) => {
 // AI chat (non-streaming for simplicity/stability)
 app.post('/api/ai/chat', async (req, res) => {
     const { transcript, customer } = req.body || {};
-    if (!transcript || !customer) {
-        return res.status(400).send('transcript and customer are required');
+    
+    console.log('AI chat request:', { 
+        transcript: transcript ? `"${transcript}"` : 'empty/null',
+        customer: customer ? `ID: ${customer.id}` : 'missing' 
+    });
+    
+    if (!transcript || transcript.trim() === '') {
+        return res.status(400).json({ 
+            error: 'transcript is required and cannot be empty',
+            received: transcript 
+        });
     }
+    
+    if (!customer) {
+        return res.status(400).json({ 
+            error: 'customer data is required' 
+        });
+    }
+    
     if (!openai || !openRouterModel) {
         return res.status(500).send('OpenRouter is not configured');
     }
 
     const systemLines = [
-        'You are an AI assistant for a telecommunications company.',
-        'Use only the provided customer data. If something is unknown, say so.',
+        'You are a helpful AI customer service representative for TelecomCorp, a telecommunications company.',
+        'You can help with billing inquiries, plan changes, technical support, account information, and general questions.',
+        'Always be polite, professional, and empathetic. Provide clear, concise answers.',
+        'Use only the provided customer data. If information is not available, acknowledge this and offer to help find it.',
+        'For technical issues, provide basic troubleshooting steps when appropriate.',
+        'For billing disputes or complex issues, offer to escalate to a human representative.',
+        'If a customer is not yet identified, politely ask them to provide their phone number or name for verification.',
+        '',
+        'Common services you can help with:',
+        '- Check account balance and payment history',
+        '- Explain current plan and usage',
+        '- Troubleshoot internet/TV/phone issues',
+        '- Schedule service appointments',
+        '- Upgrade or downgrade plans',
+        '- Payment assistance and options',
     ];
+    
     const customerLines = [
-        `ID: ${customer.id}`,
+        `Customer ID: ${customer.id}`,
         `Name: ${customer.name}`,
-        `Plan: ${customer.plan}`,
-        `Status: ${customer.status}`,
-        `Balance: ${customer.balance}`,
-        customer.lastPayment ? `Last Payment: ${customer.lastPayment}` : undefined,
+        `Current Plan: ${customer.plan}`,
+        `Account Status: ${customer.status}`,
+        `Current Balance: ${customer.balance}`,
+        customer.lastPayment ? `Last Payment: ${customer.lastPayment}` : 'No recent payment on file',
+        customer.billing ? `Usage: ${customer.billing.usage}` : undefined,
+        customer.billing ? `Next Bill Due: ${customer.billing.nextDue}` : undefined,
+        customer.billing ? `Payment Method: ${customer.billing.paymentMethod}` : undefined,
+        customer.support ? `Support Tickets: ${customer.support.tickets}` : undefined,
+        customer.support ? `Customer Satisfaction: ${customer.support.satisfaction}/5.0` : undefined,
+        customer.services ? `Internet: ${customer.services.internet}` : undefined,
+        customer.services ? `TV Service: ${customer.services.tv}` : undefined,
+        customer.services ? `Phone Service: ${customer.services.phone}` : undefined,
+        customer.support?.recentIssues ? `Recent Issues: ${customer.support.recentIssues.join(', ')}` : undefined,
     ].filter(Boolean);
-    const systemPrompt = [...systemLines, '', 'Customer Data:', ...customerLines].join('\n');
+    
+    const systemPrompt = [...systemLines, '', 'Current Customer Information:', ...customerLines].join('\n');
 
     try {
         const response = await openai.chat.completions.create({
             model: openRouterModel,
-            max_tokens: 300,
+            max_tokens: 500,
+            temperature: 0.7,
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: transcript },
