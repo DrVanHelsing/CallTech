@@ -1,7 +1,6 @@
 fastapi
 uvicorn
 openai-whisper
-coqui-tts
-torch
-pydub
 python-multipart
+librosa
+soundfile

@@ -56,9 +56,11 @@ export const VoiceRecorder = ({ onQueryComplete, onProcessingStart }: VoiceRecor
         const formData = new FormData();
         formData.append('audio', audioBlob, `recording.${ext}`);
 
+        const PYTHON_API = 'https://super-duper-enigma-9w57j6xx6xwhxrj5-8000.app.github.dev';
+        const NODE_API = 'https://super-duper-enigma-9w57j6xx6xwhxrj5-3001.app.github.dev';
         try {
           // 1. Speech-to-text (Python backend)
-          const transcriptRes = await fetch('http://localhost:8000/stt', {
+          const transcriptRes = await fetch(`${PYTHON_API}/stt`, {
             method: 'POST',
             body: formData
           });
@@ -70,7 +72,7 @@ export const VoiceRecorder = ({ onQueryComplete, onProcessingStart }: VoiceRecor
           setTranscript(transcriptData.transcript);
 
           // 2. Fetch customer data (Node backend)
-          const customerRes = await fetch('http://localhost:3001/api/customers/CUST-2024-001');
+          const customerRes = await fetch(`${NODE_API}/api/customers/CUST-2024-001`);
           if (!customerRes.ok) {
             const errText = await customerRes.text();
             throw new Error(`customer fetch failed: ${errText}`);
@@ -78,7 +80,7 @@ export const VoiceRecorder = ({ onQueryComplete, onProcessingStart }: VoiceRecor
           const customer = await customerRes.json();
 
           // 3. Send transcript and customer to AI endpoint (Node backend)
-          const aiRes = await fetch('http://localhost:3001/api/ai/chat', {
+          const aiRes = await fetch(`${NODE_API}/api/ai/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ transcript: transcriptData.transcript, customer })
@@ -92,7 +94,7 @@ export const VoiceRecorder = ({ onQueryComplete, onProcessingStart }: VoiceRecor
           // 4. Text-to-speech (Python backend)
           const ttsForm = new FormData();
           ttsForm.append('text', aiData.response);
-          const ttsRes = await fetch('http://localhost:8000/tts', {
+          const ttsRes = await fetch(`${PYTHON_API}/tts`, {
             method: 'POST',
             body: ttsForm
           });
