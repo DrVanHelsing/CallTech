@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,7 +33,15 @@ export const VoiceRecorder = ({
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
   const [conversationHistory, setConversationHistory] = useState<Array<{type: 'user' | 'ai', message: string, timestamp: Date}>>([]);
+  const [identifiedCustomer, setIdentifiedCustomer] = useState<{id: string, name: string} | null>(null);
+  const [isFirstInteraction, setIsFirstInteraction] = useState(true);
   const streamRef = useRef<MediaStream | null>(null);
+
+  // Show welcome message when component loads
+  useEffect(() => {
+    const welcomeMessage = "Hello! Welcome to our customer service. I'm here to help you today. Click the microphone and tell me your first name - Sarah, John, or Maria - or say your phone number's last 4 digits to get started.";
+    setTranscript(welcomeMessage);
+  }, []);
 
   // Clean text for TTS to avoid reading special characters literally
   const cleanTextForTTS = (text: string): string => {
@@ -76,55 +84,25 @@ export const VoiceRecorder = ({
       utterance.pitch = 1.0;
       utterance.volume = 1.0;
       
-      // Try to use a natural female voice
+      // Select the best female voice available
       const voices = window.speechSynthesis.getVoices();
+      const femaleVoice = voices.find(voice => 
+        voice.lang.startsWith('en') && 
+        (voice.name.toLowerCase().includes('female') ||
+         voice.name.toLowerCase().includes('zira') ||
+         voice.name.toLowerCase().includes('samantha') ||
+         voice.name.toLowerCase().includes('susan') ||
+         voice.name.toLowerCase().includes('victoria') ||
+         voice.name.toLowerCase().includes('allison') ||
+         voice.name.toLowerCase().includes('ava') ||
+         voice.name.toLowerCase().includes('serena'))
+      ) || voices.find(voice => voice.lang.startsWith('en') && voice.default) 
+        || voices.find(voice => voice.lang.startsWith('en')) 
+        || voices[0];
       
-      // Priority order for natural female voices
-      const preferredVoiceNames = [
-        'Microsoft Zira Desktop',     // Windows natural female voice
-        'Microsoft Zira',             // Windows Zira
-        'Microsoft Eva Mobile',       // Windows Eva
-        'Google UK English Female',   // Google female
-        'Google US English Female',   // Google female US
-        'Samantha',                   // macOS natural female
-        'Victoria',                   // macOS Victoria
-        'Allison',                    // macOS Allison
-        'Ava',                        // macOS Ava
-        'Serena',                     // macOS Serena
-        'Alex'                        // Fallback - good quality voice
-      ];
-      
-      // Find the best available female voice
-      let selectedVoice = null;
-      
-      // First, try exact name matches
-      for (const voiceName of preferredVoiceNames) {
-        selectedVoice = voices.find(voice => 
-          voice.name.toLowerCase().includes(voiceName.toLowerCase())
-        );
-        if (selectedVoice) break;
-      }
-      
-      // If no exact match, try to find any high-quality female voice
-      if (!selectedVoice) {
-        selectedVoice = voices.find(voice => 
-          voice.lang.startsWith('en') && 
-          (voice.name.toLowerCase().includes('female') ||
-           voice.name.toLowerCase().includes('woman') ||
-           voice.name.toLowerCase().includes('zira') ||
-           voice.name.toLowerCase().includes('samantha') ||
-           voice.name.toLowerCase().includes('microsoft'))
-        );
-      }
-      
-      // Fallback to any English voice
-      if (!selectedVoice) {
-        selectedVoice = voices.find(voice => voice.lang.startsWith('en'));
-      }
-      
-      if (selectedVoice) {
-        utterance.voice = selectedVoice;
-        console.log('Selected voice:', selectedVoice.name, selectedVoice.lang);
+      if (femaleVoice) {
+        utterance.voice = femaleVoice;
+        console.log('Using voice:', femaleVoice.name, femaleVoice.lang);
       }
       
       utterance.onstart = () => setIsSpeaking(true);
@@ -147,13 +125,30 @@ export const VoiceRecorder = ({
   // Handle customer identification through voice
   const handleCustomerIdentification = async (transcript: string) => {
     try {
-      // Look for phone numbers in the transcript
-      const phoneMatch = transcript.match(/\b\d{4}\b/); // Look for 4-digit sequences
+      // Convert spelled numbers to digits
+      const convertSpelledNumbers = (text: string): string => {
+        const numberMap: { [key: string]: string } = {
+          'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4',
+          'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9'
+        };
+        
+        let converted = text.toLowerCase();
+        Object.entries(numberMap).forEach(([word, digit]) => {
+          converted = converted.replace(new RegExp(`\\b${word}\\b`, 'g'), digit);
+        });
+        return converted;
+      };
+
+      const convertedTranscript = convertSpelledNumbers(transcript);
+
+      // Look for phone numbers in the transcript (both digits and converted spelled numbers)
+      const phoneMatch = convertedTranscript.match(/\b\d{4}\b/); // Look for 4-digit sequences
       if (phoneMatch) {
         const phoneDigits = phoneMatch[0];
         const response = await fetch(`${NODE_API}/api/customers/lookup/phone/${phoneDigits}`);
         if (response.ok) {
           const customer = await response.json();
+          setIdentifiedCustomer({ id: customer.id, name: customer.name });
           onCustomerSelected?.(customer.id);
           const welcomeMessage = `Customer identified: ${customer.name}. How can I help you today?`;
           setTranscript(welcomeMessage);
@@ -178,6 +173,7 @@ export const VoiceRecorder = ({
           onCustomerSelected?.(customerId);
           const response = await fetch(`${NODE_API}/api/customers/${customerId}`);
           const customer = await response.json();
+          setIdentifiedCustomer({ id: customer.id, name: customer.name });
           const welcomeMessage = `Hello ${customer.name}! I've accessed your account. How can I help you today?`;
           setTranscript(welcomeMessage);
           speakResponse(welcomeMessage, () => setIsProcessing(false));
@@ -185,8 +181,14 @@ export const VoiceRecorder = ({
         }
       }
 
-      // If no identification found, ask for it
-      const helpMessage = "Hello! To help you today, I need to identify your account. Please say your phone number's last 4 digits, or say your first name.";
+      // If no identification found, provide welcome message or ask for identification
+      let helpMessage: string;
+      if (isFirstInteraction) {
+        helpMessage = "Hello! Welcome to our customer service. I'm here to help you today. To get started, please tell me your first name - Sarah, John, or Maria - or say your phone number's last 4 digits.";
+        setIsFirstInteraction(false);
+      } else {
+        helpMessage = "I didn't catch your identification. Please clearly say either your first name - Sarah, John, or Maria - or your phone number's last 4 digits.";
+      }
       setTranscript(helpMessage);
       speakResponse(helpMessage, () => setIsProcessing(false));
     } catch (error) {
@@ -269,14 +271,20 @@ export const VoiceRecorder = ({
             throw new Error('No speech detected in the recording. Please try speaking more clearly or louder.');
           }
 
-          // Handle customer identification if not selected
-          if (!selectedCustomerId) {
+          // Handle customer identification if not selected and not already identified
+          if (!selectedCustomerId && !identifiedCustomer) {
             await handleCustomerIdentification(transcriptData.transcript);
             return;
           }
 
+          // Use identified customer if available, otherwise use selectedCustomerId
+          const customerId = identifiedCustomer?.id || selectedCustomerId;
+          if (!customerId) {
+            throw new Error('No customer identified');
+          }
+
           // 2. Fetch customer data (Node backend)
-          const customerRes = await fetch(`${NODE_API}/api/customers/${selectedCustomerId}`);
+          const customerRes = await fetch(`${NODE_API}/api/customers/${customerId}`);
           if (!customerRes.ok) {
             const errText = await customerRes.text();
             throw new Error(`customer fetch failed: ${errText}`);
@@ -346,6 +354,13 @@ export const VoiceRecorder = ({
     setIsRecording(false);
   };
 
+  const resetCustomerIdentification = () => {
+    setIdentifiedCustomer(null);
+    setConversationHistory([]);
+    setTranscript("");
+    setIsFirstInteraction(true);
+  };
+
   return (
     <div className="space-y-3">
       {/* Compact Recording Button */}
@@ -390,6 +405,25 @@ export const VoiceRecorder = ({
         </div>
       </div>
 
+      {/* Customer Status */}
+      {identifiedCustomer && (
+        <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-lg">
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="bg-green-100 text-green-800">
+              Customer: {identifiedCustomer.name}
+            </Badge>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={resetCustomerIdentification}
+            className="h-6 px-2 text-xs text-green-700 hover:text-green-900"
+          >
+            Reset
+          </Button>
+        </div>
+      )}
+
       {/* Compact Conversation History */}
       {conversationHistory.length > 0 && (
         <div className="space-y-2">
@@ -422,7 +456,7 @@ export const VoiceRecorder = ({
       )}
 
       {/* Compact Live Transcript */}
-      {(transcript || isRecording) && transcript && (
+      {transcript && (
         <div className="p-2 bg-muted/50 rounded text-xs">
           <div className="flex items-center gap-1 mb-1">
             <MicOff className="h-3 w-3 text-muted-foreground" />

@@ -213,13 +213,68 @@ const Index = () => {
           </Card>
         </div>
 
-        {/* Current Query Display */}
-        {currentQuery && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {/* AI Router and Response Display - Always Visible */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {currentQuery ? (
             <AIRouter query={currentQuery} isProcessing={isProcessing} />
+          ) : (
+            <Card className="bg-gradient-card shadow-card border-0">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bot className="h-5 w-5" />
+                  AI Router
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Bot className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Query Analysis</span>
+                  </div>
+                  <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg text-center">
+                    Waiting for voice input...
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Route Selection</span>
+                  </div>
+                  <div className="text-sm text-muted-foreground text-center">
+                    AI will determine the best specialist for your query
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          {currentQuery ? (
             <ResponseDisplay query={currentQuery} isProcessing={isProcessing} />
-          </div>
-        )}
+          ) : (
+            <Card className="bg-gradient-card shadow-card border-0">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  AI Response
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <span className="text-sm font-medium">Generated Response</span>
+                  <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg text-center">
+                    AI response will appear here after you speak your query
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <span className="text-sm font-medium">Response Quality</span>
+                  <div className="text-sm text-muted-foreground text-center">
+                    Confidence and timing metrics will be displayed here
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
         {/* Stats and History */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

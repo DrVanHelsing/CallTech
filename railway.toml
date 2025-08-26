@@ -1,8 +1,0 @@
-# Railway Configuration for Node.js Service
-[build]
-builder = "NIXPACKS"
-
-[deploy]
-startCommand = "node server/index.js"
-restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 10

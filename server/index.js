@@ -33,20 +33,10 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Health check endpoint for deployment monitoring
-app.get('/health', (req, res) => {
-    res.json({ 
-        status: 'healthy', 
-        service: 'voice-ai-node-api',
-        timestamp: new Date().toISOString(),
-        version: '1.0.0'
-    });
-});
-
 app.get('/', (req, res) => {
     res.json({ 
         message: 'Voice AI Node.js API Server',
-        endpoints: ['/health', '/api/customers', '/api/ai/chat'],
+        endpoints: ['/api/customers', '/api/ai/chat'],
         status: 'running'
     });
 });
@@ -56,11 +46,6 @@ const readCustomers = async () => {
     const data = await fs.promises.readFile(customersPath, 'utf8');
     return JSON.parse(data);
 };
-
-// Health check
-app.get('/api/health', (req, res) => {
-    res.json({ ok: true });
-});
 
 // Customers endpoints
 app.get('/api/customers', async (req, res) => {

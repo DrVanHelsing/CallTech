@@ -70,21 +70,11 @@ print(f"Loading Whisper model: {whisper_model_name}...")
 whisper_model = whisper.load_model(whisper_model_name)
 print("Whisper model loaded successfully!")
 
-@app.get("/health")
-async def health_check():
-    return {
-        "status": "healthy",
-        "service": "voice-ai-python-backend", 
-        "timestamp": datetime.now().isoformat(),
-        "version": "1.0.0",
-        "whisper_model": whisper_model_name
-    }
-
 @app.get("/")
 async def root():
     return {
         "message": "Voice AI Python Backend",
-        "endpoints": ["/health", "/stt", "/tts"],
+        "endpoints": ["/stt", "/tts"],
         "status": "running"
     }
 
