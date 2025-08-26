@@ -24,7 +24,7 @@ All three services start simultaneously with colored output:
 - 🟢 **Python**: Whisper backend (port 8001)  
 - 🟡 **Frontend**: React app (port 8080)
 
-## 📍 **Access Your Demo:**
+## 📍 **Access The Demo:**
 
 **Main App**: http://localhost:8080/
 **Network Access**: http://172.17.144.122:8080/
