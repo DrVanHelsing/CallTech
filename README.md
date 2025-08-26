@@ -36,13 +36,41 @@ pip install -r requirements.txt
 cd ..
 
 # Step 5: Configure environment variables.
-# Create .env files in both root and server directories
-# Add your OpenRouter API key to server/.env:
-# OPENROUTER_API_KEY=your_api_key_here
+# Copy the example environment file and add your API key
+cp .env.example .env
+
+# Edit .env file and add your OpenRouter API key:
+# 1. Visit https://openrouter.ai/keys to get a free API key
+# 2. Sign up/login to OpenRouter 
+# 3. Create a new API key
+# 4. Replace 'your_openrouter_api_key_here' in .env with your actual key
+# Example: OPENROUTER_API_KEY=sk-or-v1-your-actual-key-here
 
 # Step 6: Start all development servers.
 npm run start:all
 ```
+
+## 🔑 **API Key Setup**
+
+This application requires an OpenRouter API key to function. OpenRouter provides access to various AI models including the free Mistral model used in this project.
+
+### Getting Your Free API Key:
+
+1. **Visit OpenRouter**: Go to [https://openrouter.ai/keys](https://openrouter.ai/keys)
+2. **Create Account**: Sign up for a free account (supports Google/GitHub login)
+3. **Generate Key**: Click "Create Key" to generate your API key
+4. **Copy Key**: Copy the generated key (starts with `sk-or-v1-`)
+
+### Setting Up Your Environment:
+
+1. **Copy Template**: `cp .env.example .env`
+2. **Edit .env**: Open `.env` file and replace `your_openrouter_api_key_here` with your actual key
+3. **Save File**: Your `.env` file should look like:
+   ```
+   OPENROUTER_API_KEY=sk-or-v1-your-actual-key-here
+   ```
+
+> **Note**: The `.env` file is not included in the repository for security reasons. You must create your own API key.
 
 **Edit a file directly in GitHub**
 
