@@ -68,14 +68,6 @@ This project is built with:
 - **Speech Processing**: Python + FastAPI + OpenAI Whisper
 - **Audio**: Browser MediaRecorder + SpeechSynthesis APIs
 
-## 📦 **Deployment**
-
-The application is configured for deployment on:
-- **Frontend**: Vercel (React/Vite hosting)
-- **Backend Services**: Railway (Node.js + Python)
-
-See `deployment-guide.md` for detailed deployment instructions.
-
 ## 🏗 **Architecture**
 
 ```
