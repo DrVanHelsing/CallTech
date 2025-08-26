@@ -5,9 +5,6 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import axios from 'axios';
-import multer from 'multer';
-import sdk from 'microsoft-cognitiveservices-speech-sdk';
 import OpenAI from 'openai';
 
 // Resolve __dirname in ESM
@@ -17,10 +14,6 @@ const __dirname = path.dirname(__filename);
 // Config and constants
 const port = process.env.PORT || 3001;
 const customersPath = path.join(__dirname, 'customers.json');
-
-// Azure Speech
-const speechKey = process.env.SPEECH_KEY;
-const speechRegion = process.env.SPEECH_REGION;
 
 // OpenRouter (Mistral) config
 const openRouterKey = process.env.OPENROUTER_API_KEY;
@@ -57,9 +50,6 @@ app.get('/', (req, res) => {
         status: 'running'
     });
 });
-
-// Multer for uploads (memory storage)
-const upload = multer({ storage: multer.memoryStorage() });
 
 // Helpers
 const readCustomers = async () => {
@@ -117,84 +107,6 @@ app.get('/api/customers/lookup/phone/:phone', async (req, res) => {
     } catch (err) {
         console.error('[customers/lookup/phone] error', err);
         res.status(500).send('Error looking up customer');
-    }
-});
-
-// Azure Speech token (optional for client-side SDKs)
-app.get('/api/speech-to-text/token', async (req, res) => {
-    if (!speechKey || !speechRegion) {
-        return res.status(400).send('Azure Speech credentials are not set.');
-    }
-    try {
-        const tokenResponse = await axios.post(
-            `https://${speechRegion}.api.cognitive.microsoft.com/sts/v1.0/issueToken`,
-            null,
-            { headers: { 'Ocp-Apim-Subscription-Key': speechKey } }
-        );
-        res.json({ token: tokenResponse.data, region: speechRegion });
-    } catch (err) {
-        console.error('[speech token] error', err?.message || err);
-        res.status(500).send('Error getting speech token');
-    }
-});
-
-// Azure Speech-to-Text via server-side SDK (upload Blob)
-app.post('/api/speech-to-text', upload.single('audio'), async (req, res) => {
-    if (!speechKey || !speechRegion) {
-        return res.status(400).send('Azure Speech credentials are not set.');
-    }
-    if (!req.file) {
-        return res.status(400).send('No audio file uploaded');
-    }
-
-    try {
-        // Choose the proper container format for push stream based on mimetype
-        const mime = req.file.mimetype || '';
-        let pushStream;
-        if (mime.includes('webm')) {
-            const format = sdk.AudioStreamFormat.getCompressedFormat(
-                sdk.AudioStreamContainerFormat.WEBM
-            );
-            pushStream = sdk.AudioInputStream.createPushStream(format);
-        } else if (mime.includes('ogg')) {
-            const format = sdk.AudioStreamFormat.getCompressedFormat(
-                sdk.AudioStreamContainerFormat.OGG_OPUS
-            );
-            pushStream = sdk.AudioInputStream.createPushStream(format);
-        } else {
-            // Fallback (SDK will try to interpret raw/PCM)
-            pushStream = sdk.AudioInputStream.createPushStream();
-        }
-
-        pushStream.write(req.file.buffer);
-        pushStream.close();
-
-        const audioConfig = sdk.AudioConfig.fromStreamInput(pushStream);
-        const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion);
-        speechConfig.speechRecognitionLanguage = 'en-US';
-
-        const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
-        recognizer.recognizeOnceAsync(
-            (result) => {
-                try {
-                    if (result.reason === sdk.ResultReason.RecognizedSpeech) {
-                        return res.json({ transcript: result.text });
-                    }
-                    console.error('[speech-to-text] not recognized', result);
-                    return res.status(500).send('Speech not recognized');
-                } finally {
-                    recognizer.close();
-                }
-            },
-            (err) => {
-                console.error('[speech-to-text] recognize error', err);
-                try { recognizer.close(); } catch {}
-                return res.status(500).send('Error during speech recognition');
-            }
-        );
-    } catch (err) {
-        console.error('[speech-to-text] error', err);
-        return res.status(500).send('Error processing audio');
     }
 });
 
