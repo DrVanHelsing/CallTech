@@ -1,6 +1,7 @@
 {
   "name": "voice-ai-server",
   "version": "1.0.0",
+  "type": "module",
   "description": "Node.js API server for Voice AI application",
   "main": "index.js",
   "scripts": {
