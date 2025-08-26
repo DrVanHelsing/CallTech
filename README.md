@@ -1,26 +1,19 @@
-# Welcome to your Lovable project
+# Voice AI Customer Service Application
 
-## Project info
+An intelligent voice-powered customer service system built with React, Node.js, and Python.
 
-**URL**: https://lovable.dev/projects/cf30c469-b0a1-44fb-9ce6-f311c88d3955
+## 🎯 **Features**
 
-## How can I edit this code?
+- **Voice Input**: Record voice queries using browser microphone
+- **Speech-to-Text**: Powered by OpenAI Whisper for accurate transcription
+- **AI Responses**: Smart customer service responses using Mistral AI
+- **Text-to-Speech**: Natural voice responses using browser speech synthesis
+- **Customer Database**: Integrated customer lookup and management
+- **Interactive Pipeline**: Visual workflow showing processing stages
 
-There are several ways of editing your application.
+## 🚀 **Quick Start**
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/cf30c469-b0a1-44fb-9ce6-f311c88d3955) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+**Development Setup:**
 
 ```sh
 # Step 1: Clone the repository using the project's Git URL.
@@ -54,20 +47,31 @@ npm run dev
 
 This project is built with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 🛠 **Tech Stack**
 
-## How can I deploy this project?
+- **Frontend**: React + TypeScript + Vite + Tailwind CSS + shadcn-ui
+- **Backend API**: Node.js + Express + OpenRouter (Mistral AI)
+- **Speech Processing**: Python + FastAPI + OpenAI Whisper
+- **Audio**: Browser MediaRecorder + SpeechSynthesis APIs
 
-Simply open [Lovable](https://lovable.dev/projects/cf30c469-b0a1-44fb-9ce6-f311c88d3955) and click on Share -> Publish.
+## 📦 **Deployment**
 
-## Can I connect a custom domain to my Lovable project?
+The application is configured for deployment on:
+- **Frontend**: Vercel (React/Vite hosting)
+- **Backend Services**: Railway (Node.js + Python)
 
-Yes, you can!
+See `deployment-guide.md` for detailed deployment instructions.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 🏗 **Architecture**
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+```
+Voice Input → Whisper STT → Customer Lookup → Mistral AI → Browser TTS → Voice Output
+```
+
+## 🤝 **Contributing**
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
