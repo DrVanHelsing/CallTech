@@ -17,12 +17,30 @@ An intelligent voice-powered customer service system built with React, Node.js, 
 
 ```sh
 # Step 1: Clone the repository using the project's Git URL.
+git clone https://github.com/DrVanHelsing/CallTech.git
 
 # Step 2: Navigate to the project directory.
+cd CallTech
 
 # Step 3: Install the necessary dependencies.
+npm install
 
-# Step 4: Start the development servers and FrontEnd.
+# Step 4: Set up Python environment and dependencies.
+cd python-backend
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+# source venv/bin/activate
+pip install -r requirements.txt
+cd ..
+
+# Step 5: Configure environment variables.
+# Create .env files in both root and server directories
+# Add your OpenRouter API key to server/.env:
+# OPENROUTER_API_KEY=your_api_key_here
+
+# Step 6: Start all development servers.
 npm run start:all
 ```
 
